@@ -370,5 +370,6 @@ function drawOverlay() {
     h += `<text x="${S.mouseScr.x + 10}" y="${S.mouseScr.y + 18}" font-size="13" font-weight="700" fill="#fff" stroke="#000" stroke-width="2.5" paint-order="stroke">${S.penHint}</text>`;
   }
   if (typeof dimOverlaySvg === 'function') h += dimOverlaySvg(t);
+  if (S.pencil && typeof pencilPreviewSvg === 'function') h += pencilPreviewSvg(null);
   overlay.innerHTML = h;
 }

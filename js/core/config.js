@@ -12,11 +12,12 @@ const COL_ROT = '#ff8c1a', COL_ROT_HOT = '#ff5a00', COL_MOVE = '#2fbf4f';
 const SEL_TOOLS = new Set(['select', 'direct']);
 const NODE_TOOLS = new Set(['direct', 'pen', 'addAnchor', 'deleteAnchor', 'convert']);
 const XF_TOOLS = new Set(['rotate', 'reflect', 'scale']);
-const TOOL_KEYS = { V: 'select', A: 'direct', P: 'pen', M: 'rect', L: 'ellipse', R: 'rotate', O: 'reflect', S: 'scale', I: 'eyedropper', H: 'hand', Z: 'zoom' };
+const TOOL_KEYS = { V: 'select', A: 'direct', P: 'pen', N: 'pencil', M: 'rect', L: 'ellipse', R: 'rotate', O: 'reflect', S: 'scale', I: 'eyedropper', H: 'hand', Z: 'zoom' };
 const TOOLS_META = {
   select: { name: '選択ツール', key: 'V', hint: 'クリックで選択（グループは丸ごと）・ドラッグで移動／Shift で追加選択／Alt+ドラッグで複製／枠の四角で拡大縮小' },
   direct: { name: 'ダイレクト選択ツール', key: 'A', hint: 'アンカーやハンドルを個別に動かす／曲線の線をドラッグで形を変える／Shift で追加／Alt+クリックでパス全体、もう一度でグループ' },
   pen: { name: 'ペンツール', key: 'P', hint: 'クリックで直線、ドラッグで曲線／ドラッグ中に Alt で切り返し、Space でアンカーを移動／始点をクリックで閉じる／Enter・Esc で終了／Alt でアンカーポイントツール／Shift で 45°' },
+  pencil: { name: '鉛筆ツール', key: 'N', hint: 'ドラッグで自由に描く（離すとベジェ曲線になる）／始点の近くで離すと閉じる（「離すと閉じる」が出たとき）／ツールをダブルクリックでなめらかさ／正面図・側面図でも描ける（真正面・真横のとき）' },
   addAnchor: { name: 'アンカーポイントの追加ツール', key: '+', hint: 'パスの線の上をクリックしてアンカーを追加' },
   deleteAnchor: { name: 'アンカーポイントの削除ツール', key: '-', hint: 'アンカーをクリックして削除（形はつながったまま）' },
   convert: { name: 'アンカーポイントツール', key: 'Shift+C', hint: 'アンカーをクリックで角に、ドラッグで曲線に／方向線の先をドラッグで片側だけ動かす（切り返し）' },

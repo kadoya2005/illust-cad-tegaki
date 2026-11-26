@@ -373,7 +373,7 @@ function viewFoldSvg(id) {
 }
 function drawViewBox(id) {
   const svg = V3.views[id].box.querySelector('.vover');
-  const nodes = viewNodesSvg(id) + viewFoldSvg(id);
+  const nodes = viewNodesSvg(id) + viewFoldSvg(id) + (S.pencil ? pencilPreviewSvg(id) : '');
   const b = !NODE_TOOLS.has(displayTool()) && !S.drawing ? viewBox(id) : null;   // ペンなどでは枠を出さない（イラレと同じ）
   if (!b || S.hideEdges) { svg.innerHTML = nodes; return; }
   const col = findItem(b.items[0].id).layer.color;
@@ -487,6 +487,28 @@ function viewPenMove(e, q) {
 }
 function endViewPen(e, q) {
   if (S.drag && S.input) Tools.pen.up(e, viewToLocal(S.input.view, q, S.input.plane), q);
+  S.drag = null; S.activeTool = null; S.snapViz = null; S.input = null;
+  afterSelect(); drawOverlay(); updateUI(); updateCursor();
+  renderViews();
+}
+
+// ---- 正面図・側面図の鉛筆（ペンと同じ作業平面に描く。一筆のあつかいは js/tools/pencil.js） ----
+function viewPencilDown(id, e, q) {
+  const pl = viewPenPlane(id);
+  S.input = { view: id, plane: pl, scale: V3.scale, handleHits: [] };
+  S.keys.ctrl = e.ctrlKey || e.metaKey; S.keys.alt = e.altKey; S.keys.shift = e.shiftKey;
+  S.selGuide = null; S.segSel = null;
+  if (!pencilBegin(e, q, viewToLocal(id, q, pl), { view: id, plane: pl })) { S.input = null; return false; }
+  V3.penPlane[id] = clone(pl);
+  return true;
+}
+function viewPencilMove(e, local) {
+  if (!S.pencil || !S.input) return;
+  const { view, plane } = S.input;
+  pencilMove(e, (ev) => { const q = local(ev); return { sp: q, p: viewToLocal(view, q, plane) }; });
+}
+function endViewPencil() {
+  if (S.pencil) pencilFinish();
   S.drag = null; S.activeTool = null; S.snapViz = null; S.input = null;
   afterSelect(); drawOverlay(); updateUI(); updateCursor();
   renderViews();
@@ -771,6 +793,7 @@ for (const v of VIEWS) {
   const local = (e) => { const r = el.getBoundingClientRect(); return P(e.clientX - r.left, e.clientY - r.top); };
   let drag = null;
   el.addEventListener('pointerdown', (e) => {
+    if (S.pencil) return;   // 鉛筆で描いている間は、ほかの指・手のひらのポインターは無視する
     if (document.activeElement && document.activeElement !== document.body) document.activeElement.blur();
     closeMenus();
     const q = local(e);
@@ -795,6 +818,13 @@ for (const v of VIEWS) {
       return;
     }
     if (e.button !== 0) return;
+    // 鉛筆：ペンと同じく、その図の向きの板の上に描く（回して見ているときは描けない）
+    if (effectiveTool(e) === 'pencil') {
+      if (!editable(v.id)) { toast('回して見ている図では描けません（ダブルクリックで戻す）'); return; }
+      grab();
+      drag = viewPencilDown(v.id, e, q) ? { type: 'pencil', pointerId: e.pointerId } : null;
+      return;
+    }
     // ペン：その図の向きの板の上に描く（回して見ているときは描けない）
     if (effectiveTool(e) === 'pen') {
       if (!editable(v.id)) { toast('回して見ている図では描けません（ダブルクリックで戻す）'); return; }
@@ -871,6 +901,7 @@ for (const v of VIEWS) {
     const q = local(e);
     if (!drag) { hoverView(v.id, q); return; }
     if (drag.type === 'pen') { viewPenMove(e, q); return; }
+    if (drag.type === 'pencil') { if (!S.pencil) drag = null; else viewPencilMove(e, local); return; }
     // 折り線の上から動かし始めた：面を選んで、移動に切り替える
     if (drag.type === 'hingeOrMove') {
       if (Math.hypot(q.x - drag.s.x, q.y - drag.s.y) < 3) return;
@@ -903,6 +934,14 @@ for (const v of VIEWS) {
   });
   const end = (e) => {
     if (!drag) return;
+    if (drag.type === 'pencil') {
+      if (e.pointerId !== drag.pointerId) return;   // 描き始めたポインターだけが終える
+      drag = null;
+      const cancel = e.type !== 'pointerup';
+      if (cancel) { pencilAbort('入力が中断された'); renderViews(); updateUI(); return; }
+      endViewPencil();
+      return;
+    }
     const cancel = e && e.type === 'pointercancel';
     V3.arrowActive = null;
     if (cancel) {
@@ -927,6 +966,7 @@ for (const v of VIEWS) {
   };
   el.addEventListener('pointerup', end);
   el.addEventListener('pointercancel', end);
+  el.addEventListener('lostpointercapture', (e) => { if (drag && drag.type === 'pencil') end(e); });
   el.addEventListener('pointerleave', () => { if (!drag) el.dataset.hover = ''; updateViewsCursor(); });
   el.addEventListener('dblclick', () => { if (isRotated(v.id)) { V3.rot[v.id] = { yaw: v.yaw, pitch: 0 }; renderViews(); } });
   el.addEventListener('contextmenu', (e) => e.preventDefault());
@@ -951,7 +991,7 @@ function updateViewsCursor() {
     el.style.cursor = zoom ? (S.keys.alt ? 'zoom-out' : 'zoom-in')
       : S.spaceDown ? (S.keys.shift ? ROTATE_CURSORS.ne : 'grab')
       : S.tool === 'hand' ? 'grab'
-      : hv === 'grab' ? 'grab' : hv && hv.startsWith('rot-') ? ROTATE3D_CURSORS[hv.slice(4)] : HANDLE_CURSORS[hv] || (S.tool === 'pen' && !S.keys.ctrl ? 'crosshair' : SELECT_CURSOR);
+      : hv === 'grab' ? 'grab' : hv && hv.startsWith('rot-') ? ROTATE3D_CURSORS[hv.slice(4)] : HANDLE_CURSORS[hv] || ((S.tool === 'pen' || S.tool === 'pencil') && !S.keys.ctrl ? 'crosshair' : SELECT_CURSOR);
   }
 }
 function hoverView(id, q) {

@@ -107,9 +107,13 @@ function openXfDialog(kind) {
 function openPrefs() {
   openDialog({
     title: '環境設定',
-    fields: [{ id: 'step', label: 'キー入力（矢印キーで動く量）', value: S.keyStep, unit: 'mm' }],
+    fields: [{ id: 'step', label: 'キー入力（矢印キーで動く量）', value: S.keyStep, unit: 'mm' }, { id: 'smooth', label: '鉛筆のなめらかさ（画面で何 px までずれてよいか）', value: S.pencilSmooth, unit: 'px' }],
     copy: false, preview: false,
-    apply: (v) => { if (v.step > 0) { S.keyStep = v.step; savePrefs(); toast(`矢印キーで ${v.step}mm 動きます（Shift で ${fmt(v.step * 10)}mm）`); } },
+    apply: (v) => {
+      if (v.smooth >= 0) S.pencilSmooth = v.smooth;
+      if (v.step > 0) { S.keyStep = v.step; toast(`矢印キーで ${v.step}mm 動きます（Shift で ${fmt(v.step * 10)}mm）`); }
+      savePrefs();
+    },
   });
 }
 // 平均（Ctrl+Alt+J）：選んだアンカーの位置をそろえる

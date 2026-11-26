@@ -86,6 +86,7 @@ document.addEventListener('keydown', (e) => {
     return;
   }
   if (k === 'Delete' || k === 'Backspace') { e.preventDefault(); if (!deleteSelectedDims()) deleteSelection(); return; }
+  if (k === 'Escape' && S.pencil) { e.preventDefault(); pencilAbort('Esc'); return; }
   if (k === 'Enter' || k === 'Escape') {
     if (S.drawing) { e.preventDefault(); endDrawing(); }
     else if (k === 'Escape' && S.dimDraft) { S.dimDraft = null; drawOverlay(); }

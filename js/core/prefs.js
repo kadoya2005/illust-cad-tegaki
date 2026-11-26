@@ -4,7 +4,7 @@
 const PREF_FLAGS = ['rulers', 'grid', 'snapGrid', 'smart', 'showGuides', 'guidesLocked', 'show3d', 'planFolded'];
 function savePrefs() {
   try {
-    const p = { keyStepMm: S.keyStep };
+    const p = { keyStepMm: S.keyStep, pencilSmooth: S.pencilSmooth };
     for (const k of PREF_FLAGS) p[k] = S[k];
     localStorage.setItem(PREFS_KEY, JSON.stringify(p));
   } catch (_) { /* 保存できなくても続ける */ }
@@ -14,5 +14,6 @@ function loadPrefs() {
     const p = JSON.parse(localStorage.getItem(PREFS_KEY) || '{}');
     for (const k of PREF_FLAGS) if (typeof p[k] === 'boolean') S[k] = p[k];
     if (p.keyStepMm > 0) S.keyStep = p.keyStepMm;
+    if (typeof p.pencilSmooth === 'number' && p.pencilSmooth >= 0) S.pencilSmooth = p.pencilSmooth;
   } catch (_) { /* 既定のまま */ }
 }

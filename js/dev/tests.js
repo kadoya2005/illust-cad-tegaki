@@ -19,6 +19,16 @@
   const foldCube = () => { for (const n of ['back', 'front', 'left', 'right']) setHingeDeg(F('bottom'), F(n), 90); setHingeDeg(F('back'), F('lid'), 90); render(); };
   const positions = (ids) => ids.map((id) => { const it = F(id); return it.subs[0].nodes.map((n) => { const w = toWorld(planeOf(it), n); return [w.x, w.y, w.z]; }); });
   const maxDiff = (a, b) => { let m = 0; a.forEach((f, i) => f.forEach((p, j) => p.forEach((v, k) => { m = Math.max(m, Math.abs(v - b[i][j][k])); }))); return m; };
+  // 鉛筆：画面の点の列から一筆を作る（scale：1mm が何 px か。画面の点 ÷ scale を mm の点にする）
+  const stroke = (scr, scale = 1, opt = {}) => {
+    const st = pencilStroke(scr[0], P(scr[0].x / scale, scr[0].y / scale), { scale, ...opt });
+    for (const q of scr.slice(1)) pencilPush(st, q, P(q.x / scale, q.y / scale));
+    return st;
+  };
+  const circlePts = (cx, cy, r, n, turn = 1) => Array.from({ length: n + 1 }, (_, i) => { const a = (i / n) * Math.PI * 2 * turn; return P(cx + r * Math.cos(a), cy + r * Math.sin(a)); });
+  const linePts = (a, b, n) => Array.from({ length: n + 1 }, (_, i) => P(a.x + (b.x - a.x) * i / n, a.y + (b.y - a.y) * i / n));
+  // commit を数えるだけにする（試験で履歴・自動保存を触らない）
+  const countCommits = (fn) => { const real = commit; let n = 0; commit = () => { n++; }; try { fn(); } finally { commit = real; } return n; };
 
   const TESTS = [
     ['立方体の展開図：折り線が5本', () => { useDoc(cube()); return FOLD_HINGES.length === 5; }],
@@ -216,6 +226,64 @@
       const a = P(0, 0), b = P(30, 20);
       const h = dimFromPlace(a, b, P(15, -10)), v = dimFromPlace(a, b, P(40, 10)), s = dimFromPlace(a, b, P(0, -5), true);
       return h.dir === 'h' && near(h.off, -10) && v.dir === 'v' && near(v.off, 40) && s.dir === 'a';
+    }],
+    ['鉛筆：閉じる判定（ひと回り→閉じる／短い往復・離れて終わる・開いた線→閉じない）', () => {
+      const ring = stroke(circlePts(200, 200, 40, 120));                                   // 半径 40px の円をひと回り
+      const back = stroke([...linePts(P(0, 0), P(20, 0), 40), ...linePts(P(20, 0), P(0, 0), 40)]);   // 20px 行って戻る（30px 離れていない）
+      const gap = stroke(circlePts(200, 200, 40, 120, 0.94));                               // 終点が始点から約 15px
+      const line = stroke(linePts(P(0, 0), P(100, 0), 100));
+      return ring.willClose && ring.maxAway >= 79 && !back.willClose && !gap.willClose && !line.willClose;
+    }],
+    ['鉛筆：画面で 0.75px 未満の点は省く', () => {
+      const st = stroke([P(0, 0), P(0.5, 0), P(0.7, 0), P(1, 0), P(1.5, 0), P(2, 0)]);
+      return st.pts.length === 3 && near(st.scr[1].x, 1) && near(st.scr[2].x, 2);
+    }],
+    ['鉛筆：まっすぐな開いた線は、アンカー 2 個の開いたパス', () => {
+      const sb = pencilFit(stroke(linePts(P(10, 10), P(110, 60), 200), 2), 1);
+      const a = sb.nodes[0], b = sb.nodes[sb.nodes.length - 1];
+      return !sb.closed && sb.nodes.length === 2 && near(a.x, 5) && near(a.y, 5) && near(b.x, 55) && near(b.y, 30);
+    }],
+    ['鉛筆：円はアンカー数個の閉じたパスになり、ずれはなめらかさ以内（mm に換算）', () => {
+      const scale = 4, r = 160;   // 画面で半径 160px ＝ 40mm
+      const st = stroke(circlePts(400, 400, r, 360), scale);
+      const sb = pencilFit(st, 1);
+      let maxErr = 0;
+      for (let i = 0; i < sb.nodes.length; i++) {
+        const a = sb.nodes[i], b = sb.nodes[(i + 1) % sb.nodes.length];
+        for (let k = 0; k <= 10; k++) { const q = cubicAt(a, a.hout || a, b.hin || b, b, k / 10); maxErr = Math.max(maxErr, Math.abs(Math.hypot(q.x - 100, q.y - 100) - 40)); }
+      }
+      // 閉じた形として当てはめる：最後のアンカーが始点に重なっていない
+      const L = sb.nodes.length, dupEnd = vdist(sb.nodes[0], sb.nodes[L - 1]) < 0.5;
+      // なめらかさ 0：当てはめずに、集めた点のまま（始点に重なる終わりの点は外す）
+      const raw = pencilFit(st, 0);
+      return sb.closed && L >= 3 && L <= 12 && !dupEnd && maxErr <= 1.5 / scale && raw.closed && raw.nodes.length > 300;
+    }],
+    ['鉛筆：なめらかさを大きくするとアンカーが減る', () => {
+      const pts = Array.from({ length: 301 }, (_, i) => P(i, 50 + 12 * Math.sin(i / 15) + 3 * Math.sin(i * 1.3)));   // 手ぶれのような細かい揺れ
+      const n1 = pencilFit(stroke(pts), 1).nodes.length, n4 = pencilFit(stroke(pts), 4).nodes.length;
+      return n4 < n1 && n4 >= 2;
+    }],
+    ['鉛筆：正面図に描いた閉じた線は、その平面に置かれ、取り消し 1 回分。押し出すと立体になる', () => {
+      useDoc([]);
+      const pl = planeForView('viewFront', 100), scale = 2;
+      S.input = { view: 'viewFront', plane: pl, scale, handleHits: [] };
+      let it = null;
+      const commits = countCommits(() => {
+        S.pencil = stroke(circlePts(200, 200, 60, 240), scale, { view: 'viewFront', plane: pl });   // 半径 30mm
+        it = pencilFinish();
+        setExtrude(5);
+      });
+      S.input = null;
+      const vol = (tris) => tris.reduce((a, [p, q, r]) => a + v3dot(p, v3cross(q, r)) / 6, 0);
+      const v = vol(solidTriangles(it)), want = Math.PI * 30 * 30 * 5;
+      const okPlane = !!it.plane && JSON.stringify(it.plane) === JSON.stringify(pl) && !S.pencil;
+      return okPlane && it.subs[0].closed && it.x3d && near(it.x3d.h, 5) && commits === 2 && Math.abs(v - want) / want < 0.02;
+    }],
+    ['鉛筆：開いた線は塗りなしで、平面図（作業平面なし）に置かれる', () => {
+      useDoc([]);
+      let it = null;
+      countCommits(() => { S.pencil = stroke(linePts(P(0, 0), P(80, 30), 80)); it = pencilFinish(); });
+      return !!it && !it.plane && it.fill === null && !!it.stroke && !it.subs[0].closed && F(it.id) === it;
     }],
     ['角丸長方形：アンカー8個、角丸は幅・高さの半分まで、半径0なら普通の長方形', () => {
       const a = roundRectFit(10, 20, 40, 30, 5), b = roundRectFit(10, 20, 40, 10, 99), c = roundRectFit(10, 20, 40, 30, 0);

@@ -27,6 +27,8 @@ const S = {
   activeLayer: null,
   fill: '#ffffff', stroke: '#000000', sw: 0.35, activeColor: 'fill',
   drawing: null,             // ペンで描いている途中のパス { id, s }
+  pencil: null,              // 鉛筆で描いている途中の一筆（js/tools/pencil.js の pencilStroke）
+  pencilSmooth: 1,           // 鉛筆のなめらかさ（画面の px）
   outline: false,
   rulers: false, grid: false, snapGrid: false, smart: true, showGuides: true, guidesLocked: false, show3d: true, planFolded: false, foldHinge: null, lastExH: 0,
   selGuide: null, snapViz: null, snapCache: null, jis: true,

@@ -3,6 +3,7 @@
 
 // ================= マウス =================
 stage.addEventListener('pointerdown', (e) => {
+  if (S.pencil) return;   // 鉛筆で描いている間は、ほかの指・手のひらのポインターは無視する
   if (document.activeElement && document.activeElement !== document.body) document.activeElement.blur();
   closeMenus();
   S.input = null;
@@ -50,7 +51,8 @@ stage.addEventListener('pointermove', (e) => {
   const sp = evScr(e), p = toDoc(sp);
   S.mouse = p; S.mouseScr = sp;
   S.keys.ctrl = e.ctrlKey || e.metaKey; S.keys.alt = e.altKey; S.keys.shift = e.shiftKey;
-  if (S.drag) { Tools[S.activeTool].move(e, p, sp); drawOverlay(); }
+  if (S.drag && S.activeTool === 'pencil') Tools.pencil.move(e);   // 表示は requestAnimationFrame にまとめる
+  else if (S.drag) { Tools[S.activeTool].move(e, p, sp); drawOverlay(); }
   else {
     const t = effectiveTool(e);
     S.hover = ['select', 'direct', 'eyedropper', 'addAnchor', 'convert', 'rotate'].includes(t) ? (hitItem(p) || {}).it?.id || null : null;
@@ -83,6 +85,8 @@ Tools.foldHandle = {
 };
 function finishPointer(e, cancel) {
   if (!S.drag) return;
+  if (S.pencil && e.pointerId !== S.pencil.pointerId) return;   // 鉛筆の一筆は、描き始めたポインターだけが終える
+  if (cancel && S.pencil) { pencilAbort('入力が中断された'); afterSelect(); updateUI(); return; }
   const sp = evScr(e), p = toDoc(sp);
   if (cancel && S.drag.type === 'foldPlan' && S.drag.undo) { restoreFolds(S.drag.undo); render(); }   // 中断されたら元の角度に
   if (cancel && S.drag.type === 'move' && S.drag.moved) {   // 中断されたら元の位置に（コピー中ならコピーを消す）
@@ -97,6 +101,8 @@ function finishPointer(e, cancel) {
 }
 stage.addEventListener('pointerup', (e) => finishPointer(e, false));
 stage.addEventListener('pointercancel', (e) => finishPointer(e, true));
+// ポインターを取り上げられた（離す前に）：鉛筆の一筆は捨てる。ふつうに離したあとは S.pencil がもう無いので何もしない
+stage.addEventListener('lostpointercapture', (e) => { if (S.pencil && !S.pencil.view && e.pointerId === S.pencil.pointerId) finishPointer(e, true); });
 stage.addEventListener('pointerleave', () => { if (!S.drag) { S.mouseScr = null; S.hover = null; S.penHint = ''; S.snapViz = null; drawOverlay(); if (S.rulers) drawRulers(); } });
 stage.addEventListener('contextmenu', (e) => e.preventDefault());
 stage.addEventListener('wheel', (e) => {

@@ -335,6 +335,7 @@ document.querySelectorAll('[data-tool]').forEach((b) => {
     const t = b.dataset.tool;
     if (t === 'select' || t === 'direct') openXfDialog('move');
     else if (XF_TOOLS.has(t)) { S.xfOrigin = null; openXfDialog(t); }
+    else if (t === 'pencil') openPencilPrefs();
     else if (t === 'hand') fitView();
     else if (t === 'zoom') zoomAt(stageCenter(), 1);
   });
