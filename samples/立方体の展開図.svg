@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="595.276" height="841.89" viewBox="0 0 595.276 841.89">
+  <g id="展開図" data-name="展開図">
+    <path d="M255.118 340.157L340.157 340.157L340.157 425.197L255.118 425.197L255.118 340.157Z" fill="#9fe1cb" stroke="#000000" stroke-width="0.992" stroke-miterlimit="10" data-icad-id="f_bottom"/>
+    <path d="M255.118 255.118L340.157 255.118L340.157 340.157L255.118 340.157L255.118 255.118Z" fill="#f5c4b3" stroke="#000000" stroke-width="0.992" stroke-miterlimit="10" data-icad-id="f_back"/>
+    <path d="M255.118 170.079L340.157 170.079L340.157 255.118L255.118 255.118L255.118 170.079Z" fill="#cecbf6" stroke="#000000" stroke-width="0.992" stroke-miterlimit="10" data-icad-id="f_lid"/>
+    <path d="M255.118 425.197L340.157 425.197L340.157 510.236L255.118 510.236L255.118 425.197Z" fill="#f5c4b3" stroke="#000000" stroke-width="0.992" stroke-miterlimit="10" data-icad-id="f_front"/>
+    <path d="M170.079 340.157L255.118 340.157L255.118 425.197L170.079 425.197L170.079 340.157Z" fill="#fac775" stroke="#000000" stroke-width="0.992" stroke-miterlimit="10" data-icad-id="f_left"/>
+    <path d="M340.157 340.157L425.197 340.157L425.197 425.197L340.157 425.197L340.157 340.157Z" fill="#fac775" stroke="#000000" stroke-width="0.992" stroke-miterlimit="10" data-icad-id="f_right"/>
+  </g>
+</svg>
