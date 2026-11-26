@@ -97,7 +97,7 @@ function updateUI() {
   document.querySelectorAll('[data-pf]').forEach((b) => { b.disabled = tops.length < (b.dataset.pf === 'divide' || b.dataset.pf === 'trim' ? 1 : 2); });
   renderLayers();
   $('fileName').textContent = S.fileName;
-  document.title = S.fileName + ' - イラレCAD';
+  document.title = S.fileName + ' - イラレCAD 手描き';
   $('btnUndo').disabled = !canUndo();
   $('btnRedo').disabled = !canRedo();
   $('btnOutline').classList.toggle('on', S.outline);
